@@ -37,6 +37,7 @@ define postgres::database($ensure, $owner = false) {
 			fail "Invalid 'ensure' value '$ensure' for postgres::database"
 		}
 	}
+	
 }
 # vim modeline - have 'set modeline' and 'syntax on' in your ~/.vimrc.
 # vi:syntax=puppet:filetype=puppet:ts=4:et:

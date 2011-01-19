@@ -2,9 +2,29 @@ class postgres {
     if $pgversion == "" {
         exec { '/bin/false # missing postgres version': }
     } else {
-        $pgdata = "/etc/postgresql/$pgversion/main"
-
-        package { "postgresql-$pgversion":
+        
+        case $pgversion {
+            8.3: {
+                $servicename = 'postgresql-8.3'
+                $servicealias = 'postgresql'
+                $packagename = 'postgresql-$pgversion'
+                $pgdata = "/etc/postgresql/$pgversion/main"
+            }
+            9.0: {
+                $servicename = 'postgresql-9.0'
+                $servicealias = 'postgresql'
+                $packagename = 'postgresql90-server'     
+                $pgdata = '/var/lib/pgsql/9.0/data'
+		    }
+		    default: {		    
+                $servicename = 'postgresql'
+                $servicealias = undef
+                $packagename = 'postgresql'
+                $pgdata = "/etc/postgresql/$pgversion/main"
+            }
+        }
+        
+        package { $packagename:
             ensure => installed,
             alias  => 'postgres',
             before => [
@@ -12,6 +32,8 @@ class postgres {
                 Group['postgres'],
                 Service['postgresql'],
             ],
+            require => Yumrepo['pgdg90'],
+            
         }
 
         user { 'postgres':
@@ -25,14 +47,14 @@ class postgres {
 
         group { 'postgres':
             ensure  => present,
-            require => Package['postgres'],
+            require => Package[$packagename],
         }
 
         file { 'pg_hba':
             mode         => 644,
             owner        => 'postgres',
             group        => 'postgres',
-            path         => "/etc/postgresql/$pgversion/main/pg_hba.conf",
+            path         => "$pgdata/pg_hba.conf",
             notify       => Exec['postgres-reload'],
             require      => [
                 User['postgres'],
@@ -40,18 +62,26 @@ class postgres {
             ],
         }
 
-        if $pgversion == '8.3' {
-            $servicename = 'postgresql-8.3'
-            $servicealias = 'postgresql'
-        } else {
-            $servicename = 'postgresql'
-            $servicealias = undef
-        }
-
         exec { "/etc/init.d/$servicename reload":
             refreshonly => true,
             require     => Service['postgresql'],
             alias       => 'postgres-reload',
+        }
+        
+        file { $pgdata:
+            ensure => directory, 
+            mode => 0700, 
+            owner => 'postgres', 
+            require => [
+                User['postgres'],
+                Group['postgres'],
+            ],
+        }
+        
+        exec { "/etc/init.d/$servicename initdb": 
+            unless => "test -f $pgdata/PG_VERSION",
+            before => File["$pgdata"],
+            alias  => 'postgres-initdb',
         }
 
         service { $servicename:
@@ -63,6 +93,7 @@ class postgres {
             require    => [
                 User['postgres'],
                 Package['postgres'],
+                File[$pgdata],
             ],
         }
     }
