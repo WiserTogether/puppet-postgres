@@ -31,6 +31,9 @@ class postgres {
                 User['postgres'],
                 Group['postgres'],
                 Service['postgresql'],
+                File['pg_hba'],
+                File[$pgdata],
+                Exec['postgres-initdb'],
             ],
             require => Yumrepo['pgdg90'],
             
@@ -80,7 +83,7 @@ class postgres {
         
         exec { "/etc/init.d/$servicename initdb": 
             unless => "test -f $pgdata/PG_VERSION",
-            before => File["$pgdata"],
+            before => File[$pgdata],
             alias  => 'postgres-initdb',
         }
 

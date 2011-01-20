@@ -23,14 +23,19 @@ define postgres::database($ensure, $owner = false) {
 			exec { "Create $name postgres db":
 				command => "/usr/bin/createdb $ownerstring $name",
 				user    => "postgres",
-				unless  => "/usr/bin/psql -l | grep '$name  *|'"
+				unless  => "/usr/bin/psql -l | grep '$name  *|'",
+                require => [
+                    Service['postgresql'],
+                    Postgres::Role[$owner]
+                    ],
 			}
 		}
 		absent:  {
 			exec { "Remove $name postgres db":
 				command => "/usr/bin/drop $name",
 				onlyif  => "/usr/bin/psql -l | grep '$name  *|'",
-				user    => "postgres"
+				user    => "postgres",
+                require => Service['postgresql'],
 			}
 		}
 		default: {
