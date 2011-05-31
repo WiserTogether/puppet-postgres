@@ -2,25 +2,32 @@ class postgres {
     if $pgversion == "" {
         exec { '/bin/false # missing postgres version': }
     } else {
+        case $operatingsystem {
+            "centos": {
         
-        case $pgversion {
-            8.3: {
-                $servicename = 'postgresql-8.3'
-                $servicealias = 'postgresql'
-                $packagename = 'postgresql-$pgversion'
-                $pgdata = "/etc/postgresql/$pgversion/main"
+                case $pgversion {
+                    8.3: {
+                        $servicename = 'postgresql-8.3'
+                        $servicealias = 'postgresql'
+                        $packagename = 'postgresql-$pgversion'
+                        $pgdata = "/etc/postgresql/$pgversion/main"
+                    }
+                    9.0: {
+                        include yum::repo::pgdg90
+                        $servicename = 'postgresql-9.0'
+                        $servicealias = 'postgresql'
+                        $packagename = 'postgresql90-server'     
+                        $pgdata = '/var/lib/pgsql/9.0/data'
+                    }
+                    default: {		    
+                        $servicename = 'postgresql'
+                        $servicealias = undef
+                        $packagename = 'postgresql'
+                        $pgdata = "/etc/postgresql/$pgversion/main"
+                    }
+                }
             }
-            9.0: {
-                $servicename = 'postgresql-9.0'
-                $servicealias = 'postgresql'
-                $packagename = 'postgresql90-server'     
-                $pgdata = '/var/lib/pgsql/9.0/data'
-		    }
-		    default: {		    
-                $servicename = 'postgresql'
-                $servicealias = undef
-                $packagename = 'postgresql'
-                $pgdata = "/etc/postgresql/$pgversion/main"
+            default: { 
             }
         }
         

@@ -1,6 +1,8 @@
 # postgres puppet module #
 
 Manages postgres configuration.
+ 
+Requires yum
 
 ## Classes ##
 
