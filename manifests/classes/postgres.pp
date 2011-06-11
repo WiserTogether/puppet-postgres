@@ -3,6 +3,7 @@ class postgres {
         exec { '/bin/false # missing postgres version': }
     } else {
         case $operatingsystem {
+            "redhat",
             "centos": {
         
                 case $pgversion {
@@ -18,6 +19,14 @@ class postgres {
                         $servicealias = 'postgresql'
                         $packagename = 'postgresql90-server'     
                         $pgdata = '/var/lib/pgsql/9.0/data'
+                        file { 'postgresql.sh':
+                            mode        => 755,
+                            owner       => 'root',
+                            group       => 'root',
+                            path        => '/etc/profile.d/postgresql.sh',
+                            content     => "PATH=\$PATH:/usr/pgsql-9.0/bin",
+                        }
+         
                     }
                     default: {		    
                         $servicename = 'postgresql'
