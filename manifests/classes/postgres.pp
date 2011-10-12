@@ -98,7 +98,7 @@ class postgres {
         }
         
         exec { "/etc/init.d/$servicename initdb": 
-            unless => "test -f $pgdata/PG_VERSION",
+            unless => "/usr/bin/test -f $pgdata/PG_VERSION",
             before => File[$pgdata],
             alias  => 'postgres-initdb',
         }
