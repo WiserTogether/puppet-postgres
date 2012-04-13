@@ -19,7 +19,7 @@ class postgres {
                         $servicealias = 'postgresql'
                         $packagename = 'postgresql90-server'     
                         $pgdata = '/var/lib/pgsql/9.0/data'
-                        $pgroot = '/var/lib/pgsql/9.0'
+                        $pgroot = '/var/lib/pgsql'
                         file { 'postgresql.sh':
                             mode        => 755,
                             owner       => 'root',
