@@ -19,6 +19,7 @@ class postgres {
                         $servicealias = 'postgresql'
                         $packagename = 'postgresql90-server'     
                         $pgdata = '/var/lib/pgsql/9.0/data'
+                        $pgroot = '/var/lib/pgsql/9.0'
                         file { 'postgresql.sh':
                             mode        => 755,
                             owner       => 'root',
@@ -86,6 +87,37 @@ class postgres {
             require     => Service['postgresql'],
             alias       => 'postgres-reload',
         }
+        file { $pgroot:
+            ensure => directory, 
+            mode => 0700, 
+            owner => 'postgres', 
+            require => [
+                User['postgres'],
+                Group['postgres'],
+            ],
+        }
+        file { "$pgroot/backupdb.sh":
+            ensure => file, 
+            mode => 0700, 
+            owner => 'postgres', 
+            source => 'puppet:///modules/postgres/backupdb.sh',
+            require => [
+                User['postgres'],
+                Group['postgres'],
+            ],
+        }
+        file { "$pgroot/copydb.sh":
+            ensure => file, 
+            mode => 0700, 
+            owner => 'postgres', 
+            source => 'puppet:///modules/postgres/copydb.sh',
+            require => [
+                User['postgres'],
+                Group['postgres'],
+            ],
+        }
+        
+        
         
         file { $pgdata:
             ensure => directory, 
