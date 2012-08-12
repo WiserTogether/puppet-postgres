@@ -13,6 +13,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 define postgres::database($ensure, $owner = false) {
+        require postgres
 	$ownerstring = $owner ? {
 		false   => "",
 		default => "-O $owner"

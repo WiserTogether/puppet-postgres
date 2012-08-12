@@ -13,10 +13,11 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 define postgres::role($ensure, $password = false, $login = true, $createdb = false, $createrole = false, $superuser = false) {
-	$passtext = $password ? {
-		false   => "",
-		default => "PASSWORD '$password'"
-	}
+    require postgres
+    $passtext = $password ? {
+        false   => "",
+        default => "PASSWORD '$password'"
+    }
     $logintext = $login ? {
         false => "NOLOGIN",
         true => "LOGIN"
