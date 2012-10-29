@@ -13,7 +13,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 define postgres::role($ensure, $password = false, $login = true, $createdb = false, $createrole = false, $superuser = false) {
-    require postgres
+    include params
     $passtext = $password ? {
         false   => "",
         default => "PASSWORD '$password'"
@@ -38,18 +38,18 @@ define postgres::role($ensure, $password = false, $login = true, $createdb = fal
 		present: {
 			# The createuser command always prompts for the password.
 			exec { "Create $name postgres role":
-                command => "/usr/bin/psql -c \"CREATE ROLE \\\"$name\\\" $passtext $logintext $dbtext $roletext $supertext\"",
+                command => "$params::pgroot/bin/psql -c \"CREATE ROLE \\\"$name\\\" $passtext $logintext $dbtext $roletext $supertext\"",
 				user    => "postgres",
-				unless  => "/usr/bin/psql -c '\\du' | grep '^  *$name  *|'",
-                require => Service['postgresql'],
+				unless  => "$params::pgroot/bin/psql -c '\\du' | grep '^  *$name  *|'",
+                require => Service[$params::servicename],
 			}
 		}
 		absent:  {
 			exec { "Remove $name postgres role":
-				command => "/usr/bin/dropeuser $name",
+				command => "$params::pgroot/bin/dropeuser $name",
 				user    => "postgres",
-				onlyif  => "/usr/bin/psql -c '\\du' | grep '$name  *|'",
-                require => Service['postgresql'],
+				onlyif  => "$params::pgroot/bin/psql -c '\\du' | grep '$name  *|'",
+                require => Service[$params::servicename],
 			}
 		}
 		default: {

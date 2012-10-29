@@ -13,7 +13,8 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 define postgres::database($ensure, $owner = false) {
-        require postgres
+    include params
+
 	$ownerstring = $owner ? {
 		false   => "",
 		default => "-O $owner"
@@ -22,21 +23,21 @@ define postgres::database($ensure, $owner = false) {
 	case $ensure {
 		present: {
 			exec { "Create $name postgres db":
-				command => "/usr/bin/createdb $ownerstring $name && /usr/bin/psql $name -c 'alter schema public owner to $owner;'",
+				command => "$params::pgroot/bin/createdb $ownerstring $name && $params::pgroot/bin/psql $name -c 'alter schema public owner to $owner;'",
 				user    => "postgres",
-				unless  => "/usr/bin/psql -l | grep '$name  *|'",
+				unless  => "$params::pgroot/bin/psql -l | grep '$name  *|'",
                 require => [
-                    Service['postgresql'],
+                    Service[$params::servicename],
                     Postgres::Role[$owner]
                     ],
 			}
 		}
 		absent:  {
 			exec { "Remove $name postgres db":
-				command => "/usr/bin/drop $name",
-				onlyif  => "/usr/bin/psql -l | grep '$name  *|'",
+				command => "$params::pgroot/bin/drop $name",
+				onlyif  => "$params::pgroot/bin/psql -l | grep '$name  *|'",
 				user    => "postgres",
-                require => Service['postgresql'],
+                require => Service[$servicename],
 			}
 		}
 		default: {

@@ -1,152 +1,73 @@
 class postgres {
-    if $pgversion == "" {
-        exec { '/bin/false # missing postgres version': }
-    } else {
-        case $operatingsystem {
-            "redhat",
-            "centos": {
-        
-                case $pgversion {
-                    8.3: {
-                        $servicename = 'postgresql-8.3'
-                        $servicealias = 'postgresql'
-                        $packagename = 'postgresql-$pgversion'
-                        $pgdata = "/etc/postgresql/$pgversion/main"
-                    }
-                    9.0: {
-                        include yum::repo::pgdg90
-                        $servicename = 'postgresql-9.0'
-                        $servicealias = 'postgresql'
-                        $packagename = 'postgresql90-server'     
-                        $pgdata = '/var/lib/pgsql/9.0/data'
-                        $pgroot = '/var/lib/pgsql'
-                        file { 'postgresql.sh':
-                            mode        => 755,
-                            owner       => 'root',
-                            group       => 'root',
-                            path        => '/etc/profile.d/postgresql.sh',
-                            content     => "PATH=\$PATH:/usr/pgsql-9.0/bin",
-                        }
-         
-                    }
-                    default: {		    
-                        $servicename = 'postgresql'
-                        $servicealias = undef
-                        $packagename = 'postgresql'
-                        $pgdata = "/etc/postgresql/$pgversion/main"
-                    }
-                }
-            }
-            default: { 
-            }
-        }
-        
-        package { $packagename:
-            ensure => installed,
-            alias  => 'postgres',
-            before => [
-                User['postgres'],
-                Group['postgres'],
-                Service['postgresql'],
-                File['pg_hba'],
-                File[$pgdata],
-                Exec['postgres-initdb'],
-            ],
-            require => Yumrepo['pgdg90'],
-            
-        }
+    include params
 
-        user { 'postgres':
-            ensure  => present,
-            gid     => postgres,
-            require => [
-                Group['postgres'],
-                Package['postgres'],
-            ],
+    if !defined (Package[$params::packagename]) {
+        package { $params::packagename:
         }
+    }
 
-        group { 'postgres':
-            ensure  => present,
-            require => Package[$packagename],
-        }
+    file { 'pg_hba':
+        mode         => 644,
+        owner        => 'postgres',
+        group        => 'postgres',
+        path         => "$params::pgdata/pg_hba.conf",
+        notify       => Exec['postgres-reload'],
+        require      => [
+            Package[$params::packagename],
+        ],
+    }
 
-        file { 'pg_hba':
-            mode         => 644,
-            owner        => 'postgres',
-            group        => 'postgres',
-            path         => "$pgdata/pg_hba.conf",
-            notify       => Exec['postgres-reload'],
-            require      => [
-                User['postgres'],
-                Group['postgres'],
-            ],
-        }
+    exec { "$params::pgroot/bin/pg_ctl -D $params::pgdata reload":
+        alias       => 'postgres-reload',
+        user        => 'postgres',
+        refreshonly => true,
+    }
+    file { $params::pgroot:
+        ensure => directory,
+        mode => 0755,
+        owner => 'postgres',
+        group => 'postgres'
+    }
+    file { "$params::pgroot/backupdb.sh":
+        ensure => file,
+        mode => 0700,
+        owner => 'postgres',
+        group => 'postgres',
+        source => 'puppet:///modules/postgres/backupdb.sh',
+    }
+    file { "$params::pgroot/copydb.sh":
+        ensure => file,
+        mode => 0700,
+        owner => 'postgres',
+        group => 'postgres',
+        source => 'puppet:///modules/postgres/copydb.sh',
+    }
 
-        exec { "/etc/init.d/$servicename reload":
-            refreshonly => true,
-            require     => Service['postgresql'],
-            alias       => 'postgres-reload',
-        }
-        file { $pgroot:
-            ensure => directory, 
-            mode => 0700, 
-            owner => 'postgres', 
-            require => [
-                User['postgres'],
-                Group['postgres'],
-            ],
-        }
-        file { "$pgroot/backupdb.sh":
-            ensure => file, 
-            mode => 0700, 
-            owner => 'postgres', 
-            source => 'puppet:///modules/postgres/backupdb.sh',
-            require => [
-                User['postgres'],
-                Group['postgres'],
-            ],
-        }
-        file { "$pgroot/copydb.sh":
-            ensure => file, 
-            mode => 0700, 
-            owner => 'postgres', 
-            source => 'puppet:///modules/postgres/copydb.sh',
-            require => [
-                User['postgres'],
-                Group['postgres'],
-            ],
-        }
-        
-        
-        
-        file { $pgdata:
-            ensure => directory, 
-            mode => 0700, 
-            owner => 'postgres', 
-            require => [
-                User['postgres'],
-                Group['postgres'],
-            ],
-        }
-        
-        exec { "/etc/init.d/$servicename initdb": 
-            unless => "/usr/bin/test -f $pgdata/PG_VERSION",
-            before => File[$pgdata],
-            alias  => 'postgres-initdb',
-        }
+    file { $params::pgdata:
+        ensure => directory,
+        mode => 0700,
+        owner => 'postgres',
+        group => 'postgres',
+    }
 
-        service { $servicename:
-            ensure     => running,
-            enable     => true,
-            hasstatus  => true,
-            hasrestart => true,
-            alias      => $servicealias,
-            require    => [
-                User['postgres'],
-                Package['postgres'],
-                File[$pgdata],
-            ],
-        }
+    exec { "$params::pgroot/bin/initdb":
+        unless => "/bin/test -f $params::pgdata/PG_VERSION",
+        before => File[$params::pgdata],
+        alias  => 'postgres-initdb',
+        user => 'postgres',
+        require => [
+                Package[$params::packagename],
+            ]
+    }
+
+    service { $params::servicename:
+        ensure     => running,
+        enable     => true,
+        alias      => $servicealias,
+        require    => [
+            Package[$params::packagename],
+            File[$params::pgdata],
+        ],
     }
 }
 
