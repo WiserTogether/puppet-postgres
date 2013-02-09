@@ -76,6 +76,7 @@ class postgres {
             group        => 'postgres',
             path         => "$pgdata/pg_hba.conf",
             notify       => Exec['postgres-reload'],
+            replace      => false,
             require      => [
                 User['postgres'],
                 Group['postgres'],
