@@ -22,7 +22,7 @@ define postgres::database($ensure, $owner = false) {
 	case $ensure {
 		present: {
 			exec { "Create $name postgres db":
-				command => "/usr/bin/createdb $ownerstring $name && /usr/bin/psql $name -c 'alter schema public owner to $owner;'",
+				command => "/usr/bin/createdb $ownerstring $name && /usr/bin/psql $name -c 'alter schema public owner to \"$owner\";'",
 				user    => "postgres",
 				unless  => "/usr/bin/psql -l | grep '$name  *|'",
                 require => [
