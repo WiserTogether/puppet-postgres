@@ -1,11 +1,14 @@
 class postgres {
+    if $pg_replace_hba == "" {
+      $pg_replace_hba = true
+    }
     if $pgversion == "" {
         exec { '/bin/false # missing postgres version': }
     } else {
         case $operatingsystem {
             "redhat",
             "centos": {
-        
+
                 case $pgversion {
                     8.3: {
                         $servicename = 'postgresql-8.3'
@@ -17,7 +20,7 @@ class postgres {
                         include yum::repo::pgdg90
                         $servicename = 'postgresql-9.0'
                         $servicealias = 'postgresql'
-                        $packagename = 'postgresql90-server'     
+                        $packagename = 'postgresql90-server'
                         $pgdata = '/var/lib/pgsql/9.0/data'
                         $pgroot = '/var/lib/pgsql'
                         file { 'postgresql.sh':
@@ -27,9 +30,9 @@ class postgres {
                             path        => '/etc/profile.d/postgresql.sh',
                             content     => "PATH=\$PATH:/usr/pgsql-9.0/bin",
                         }
-         
+
                     }
-                    default: {		    
+                    default: {
                         $servicename = 'postgresql'
                         $servicealias = undef
                         $packagename = 'postgresql'
@@ -37,10 +40,10 @@ class postgres {
                     }
                 }
             }
-            default: { 
+            default: {
             }
         }
-        
+
         package { $packagename:
             ensure => installed,
             alias  => 'postgres',
@@ -53,7 +56,7 @@ class postgres {
                 Exec['postgres-initdb'],
             ],
             require => Yumrepo['pgdg90'],
-            
+
         }
 
         user { 'postgres':
@@ -76,7 +79,7 @@ class postgres {
             group        => 'postgres',
             path         => "$pgdata/pg_hba.conf",
             notify       => Exec['postgres-reload'],
-            replace      => false,
+            replace      => $pg_replace_hba,
             require      => [
                 User['postgres'],
                 Group['postgres'],
@@ -89,18 +92,18 @@ class postgres {
             alias       => 'postgres-reload',
         }
         file { $pgroot:
-            ensure => directory, 
-            mode => 0700, 
-            owner => 'postgres', 
+            ensure => directory,
+            mode => 0700,
+            owner => 'postgres',
             require => [
                 User['postgres'],
                 Group['postgres'],
             ],
         }
         file { "$pgroot/backupdb.sh":
-            ensure => file, 
-            mode => 0700, 
-            owner => 'postgres', 
+            ensure => file,
+            mode => 0700,
+            owner => 'postgres',
             source => 'puppet:///modules/postgres/backupdb.sh',
             require => [
                 User['postgres'],
@@ -108,29 +111,29 @@ class postgres {
             ],
         }
         file { "$pgroot/copydb.sh":
-            ensure => file, 
-            mode => 0700, 
-            owner => 'postgres', 
+            ensure => file,
+            mode => 0700,
+            owner => 'postgres',
             source => 'puppet:///modules/postgres/copydb.sh',
             require => [
                 User['postgres'],
                 Group['postgres'],
             ],
         }
-        
-        
-        
+
+
+
         file { $pgdata:
-            ensure => directory, 
-            mode => 0700, 
-            owner => 'postgres', 
+            ensure => directory,
+            mode => 0700,
+            owner => 'postgres',
             require => [
                 User['postgres'],
                 Group['postgres'],
             ],
         }
-        
-        exec { "/etc/init.d/$servicename initdb": 
+
+        exec { "/etc/init.d/$servicename initdb":
             unless => "/usr/bin/test -f $pgdata/PG_VERSION",
             before => File[$pgdata],
             alias  => 'postgres-initdb',
